@@ -1,0 +1,360 @@
+---
+title: "final_MEA_Parte2"
+author: "Mateo Rios Querubin, Sara Mira Puerta"
+date: "30/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Paquetes
+```{r}
+library(readxl)
+
+library(olsrr)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(purrr)
+library(tibble)
+library(nortest)
+library(goftest)
+
+library(lme4)
+```
+
+## Funciones
+
+Se definnen las funciones '%ni%': Negación de la función '%in%' para facilitar
+procesamientos, rsq: Función para medir el error cuadrático medio y
+rsqa: Función para medir el error cuadrático medio ajustado.
+```{r}
+'%ni%' = Negate('%in%')
+
+rsq <- function(x, y) summary(lm(y~x))$r.squared
+rsqa <- function(x, y) summary(lm(y~x))$adj.r.squared
+
+```
+
+## Datos
+
+Se establece la semilla para los números aleatorios. Se lee la tabla ya
+procesada y estandarizada como se explica en el archivo de Python
+final_MEA_Parte1.ipynb en el dataframe data. Se eliminan columnas innecesarias
+y se genera una lista con los nits presentes en los datos.
+```{r}
+set.seed(20201030)
+
+data = as.data.frame(read_excel("final_MEA_2.xlsx", col_names=TRUE))
+data = data[-c(1)]
+#data = data[27:nrow(data),]
+
+nits = unique(data$NIT)
+```
+
+## Dividir los datos en entrenamiento y prueba
+
+Para entrenar y probar el modelo a generar es necesario separar los datos. Para
+esto se genera una división de la lista nits en dos: nits_train, con
+el 70% de los NITs y nits_test, con el 30% restante. Luego, los datos
+utilizados para el entrenamiento son aquellos cuyos NIT correspondan con los de
+entrenamiento. De igual forma sucede para los datos de prueba.
+Pese a que se sabe que hay otras formas de seleccionar los conjuntos
+de entrenamiento y prueba, se opta por tomar una muestra de un tamaño
+suficientemente grande que sea asumida significativa y representativa.
+
+```{r}
+n = length(nits)
+n_train = as.integer(0.7*n)
+n_test = n - n_train
+
+nits_train = sample(nits, n_train)
+nits_test = nits[nits%ni%nits_train]
+
+data_train = data[data$NIT%in%nits_train,]
+data_test = data[data$NIT%in%nits_test,]
+```
+
+## Modelos lineales
+
+Teniendo en cuenta que se cuenta con las salidas CV y CVdif, se ponen a
+consideración cuatro modelos considerando combinaciones entre las salidas y las
+variables en vairación porcentual anual (dif). Al considerar cuán interpretables
+pueden ser los resultados se opta por el modelo que considera los costos de
+venta en variación porcentual anual y las variables explicativas de igual modo.
+```{r}
+# lm1 = lm('CV~PIB+IPC+TD+BF+BCC+TI+TRM', data = data_train)
+# lm2 = lm('CV~PIB+IPC+TD+BFdif+BCCdif+TI+TRMdif', data = data_train)
+# lm3 = lm('CVdif~PIB+IPC+TD+BF+BCC+TI+TRM', data = data_train)
+lm4 = lm('CVdif~PIB+IPC+TD+BFdif+BCCdif+TI+TRMdif', data = data_train)
+```
+
+## Determinar que variables utilizar
+
+Se utiliza una selección stepwise, evaluando las diferentes variables y
+determinando cuál o cuáles variables incluir en el modelo.
+```{r}
+step4 = ols_step_both_p(lm4, pent = 0.1, prem = 0.3,
+                        progress = TRUE, details = FALSE)
+
+```
+
+Generando como resultado que el mejor modelo posible es aquel que utiliza
+la variable TRMdif, la variación porcentual anual de la TRM y un intercepto.
+
+## Generar el modelo lineal utilizando la variable resultante
+
+Se crea entonces un modelo lineal considerando la variable TRMdif:
+```{r}
+modelo = lm('CVdif~TRMdif', data = data_train)
+summary(modelo)
+```
+
+De esto se tiene que una disminución en el variación anual de la TRM implica 
+mayores costos de venta de manera sùtil, considerandoq ue una disminución del
+1% en TRMdif produce un aumento del 0.02% en la variación de los costos de
+venta. Esta interpretación no necesariamente es directa pues se puede considerar
+que una TRM negativa, disminuiría los costos pero si se tienen en cuenta que una
+esta disminución facilita una mayor producción tiene sentido dicho aumento en
+los costos de venta.
+
+## Capacidad de ajuste
+
+Se evalua la capacidad de ajuste mediante las metricas de R-cuadrado, R-cuadrado
+ajustado y error cuadrático medio, y gráficas que exponen el comportameinto de
+los datos reales contra los datos estimados.
+```{r}
+y_train = data_train$CVdif
+yhat = predict(modelo)
+
+rsq_model = rsq(y_train, yhat)
+rsqa_model = rsqa(y_train, yhat)
+mse_model = mean((y_train - yhat)^2)
+
+metrics = matrix(c('rsq', rsq_model, 'rsqa', rsqa_model, 'mse', mse_model),
+                 ncol=2, byrow=TRUE)
+colnames(metrics) = c('metric', 'value')
+metrics = as.table(metrics)
+print(metrics)
+
+plot(yhat, y_train, 
+     xlab = 'Valor estimado', ylab = 'Valor real', 
+     main='Modelo Lineal General (variación porcentual anual estandarizado)')
+abline(a=0, b=1, lwd = 2, col = 'red')
+```
+
+Al observar las métricas no se obtienen resultados positivos. Se encuentra que
+tanto el R-cuadrado como el R-cuadrado ajustado son muy cercanos a cero y, si
+bien el error cuadrático medio es bajo, considerando los resultados anteriores
+este no es un modelo de buen ajuste.
+
+En la gráfica se aprecia que, pese a encontrar un dato atipico (aquel con valor
+real 0.4), los demás ajustan aparentemente bien, manteniendose cerca a
+los valores que deberían tomar y la curva esperada. Aún así, es solo de manera
+aparente pues las métricas exponen un resultado diferente verificando
+la sentencia de que este ajsute no es muy bueno.
+
+## Capacidad de predicción
+
+Se evalua la capacidad de predicción mediante las metricas de R-cuadrado,
+R-cuadrado ajustado y error cuadrático medio, y gráficas que exponen
+el comportameinto de los datos reales contra los datos estimados.
+```{r}
+y_test = data_test$CVdif
+ypred = predict(modelo, newdata = data_test)
+
+rsq_model = rsq(y_test, ypred)
+rsqa_model = rsqa(y_test, ypred)
+mse_model = mean((y_test - ypred)^2)
+
+metrics = matrix(c('rsq', rsq_model, 'rsqa', rsqa_model, 'mse', mse_model),
+                 ncol=2, byrow=TRUE)
+colnames(metrics) = c('metric', 'value')
+metrics = as.table(metrics)
+print(metrics)
+
+plot(ypred, y_test, 
+     xlab = 'Valor predicho', ylab = 'Valor real', 
+     main='Modelo Lineal General (variación porcentual anual estandarizado)')
+abline(a=0, b=1, lwd = 2, col = 'red')
+
+```
+
+los valores de las metricas para la predicción son más deficientes que aquellos
+encontrados en el ajuste. Se hallan R-cuadrado y R-cuadrado ajustado más bajos
+y el error cuadrático más alto.
+
+A pesar de la aprente presencia de dos atipicos, la gráfica luce bien dando la
+impresión de un buen ajuste. No obstante, como sucedió para el ajuste sucede
+para la predicción y las metricas contrarían la idea de que el resultado es
+bueno. Ante esto se considera que tampoco tiene una buena capacidad de
+predicción.
+
+Estos resultados eran de esperarse considerando que para cada año, para cada
+empresa las variables explicativas son las mismas generando una incapacidad de
+reproducir la individualidad de cada una. Se considera entonces la creación de
+modelos de efectos mixtos capaces de afrontar esta situación.
+
+## Evaluación del modelo mediante gráficos
+
+Ahora se presentan gráficos de evaluación del modelo generado.
+```{r}
+par(mfrow=c(3,2))
+plot_modelo = plot(modelo, which = c(1:6))
+```
+
+Mediante la distancia de Cook se observa que las curvas 27, 34 y 55 son
+posibles datos atipicos correspondientes a los NIT 800230209 y 900375325 para
+2017 y a 900375325 para 2018. Basados en esto se podría analizar un modelo
+sin la presencia de los NIT 800230209 y 900375325.
+
+Adicionalmente, se evidencia en el Q-Q plot que los residuales aparentan
+comportare como datos pertenecientes a una distribución según sus cuantiles
+teóricos.
+
+Acorde a la gráfica de residuales vs valor ajustado, el rango de los residuales
+pertenece al dominio de los valores ajustados.
+
+## Modelo Lineal Generalizado (GLM)
+
+Este tipo de modelos permite crear estructuras que consideran supuestos
+especificos sobre la variable respuesta. Estos modelos incluyen Poisson, Logit,
+Gamma y Gaussianos. Considerar el modelo gaussiano sería retomar el modelo que
+se ha estado exponiendo hasta ahora y, considerar algún otro sería infactible
+pues la variable salida no es un conteo, su valores no se encuentran en el
+conjunto $\{0, 1\}$ y sus valores pueden ser negativos.
+
+Ante esto, no se propone un modelo lineal generalizado.
+
+## Modelos de efectos mixtos
+
+Considerando la presencia de multiples registros con variables explicativas
+repetidas, se propone un modelo de efectos mixtos relacionando tanto a la TRMdif
+como al PIB.
+
+```{r}
+modelo_em <-lmer('CVdif~TRMdif+(TRMdif|NIT)+PIB+(0+PIB|NIT)', data=data_train)
+summary(modelo_em)
+```
+
+Este modelo presenta un que un cambio de un 1% en la TRMdif, genera una
+disminución del 0.017% en los costos de venta, así como un aumento del 1% en
+el PIB produce una disminución del 0.005% en los costos de venta. En sí esto no
+parece tener mucho sentido hasta que se evalua desde una perspectiva como la que
+es propuesta para el caso anterior.
+
+A continuación se evalua el ajuste de este modelo.
+
+```{r}
+y_train = data_train$CVdif
+yhat = predict(modelo_em)
+
+rsq_model = rsq(y_train, yhat)
+rsqa_model = rsqa(y_train, yhat)
+mse_model = mean((y_train - yhat)^2)
+
+metrics = matrix(c('rsq', rsq_model, 'rsqa', rsqa_model, 'mse', mse_model),
+                 ncol=2, byrow=TRUE)
+colnames(metrics) = c('metric', 'value')
+metrics = as.table(metrics)
+print(metrics)
+
+plot(yhat, y_train, 
+     xlab = 'Valor estimado', ylab = 'Valor real', 
+     main='Modelo de Efectos Mixtos (variación porcentual anual estandarizado)')
+abline(a=0, b=1, lwd = 2, col = 'blue')
+
+```
+
+Es posible apreciar un ajuste mucho mejor, tanto graficamente como en métricas.
+La disposición de los puntos indica resultados apropiados con una curva cercana
+a la diagonal. Esto es corroborado por un R-caudrado y un R-cuadrado ajustado
+cercanos a 1 (superiores a 0.8), y un error cuadrático medio cercano a cero
+(0.0012). Estos resultados aseguran que este modelo es mejor que el anterior y
+dan la impresión de que este es un buen modelo.
+
+Se procede ahora, con la evaluación de la capacidad de predicción.
+
+```{r}
+y_test = data_test$CVdif
+ypred = predict(modelo_em, newdata = data_test, allow.new.levels=TRUE)
+
+rsq_model = rsq(y_test, ypred)
+rsqa_model = rsqa(y_test, ypred)
+mse_model = mean((y_test - ypred)^2)
+
+metrics = matrix(c('rsq', rsq_model, 'rsqa', rsqa_model, 'mse', mse_model),
+                 ncol=2, byrow=TRUE)
+colnames(metrics) = c('metric', 'value')
+metrics = as.table(metrics)
+print(metrics)
+
+plot(ypred, y_test, 
+     xlab = 'Valor predicho', ylab = 'Valor real',
+     main='Modelo de Efectos Mixtos (variación porcentual anual estandarizado)')
+abline(a=0, b=1, lwd = 2, col = 'blue')
+
+```
+
+Pese a la buena capacidad de ajuste, la capacidad de predicción produjo
+resultados no muy optimos, incluso peores que el modelo propuesto originalmente
+si se observan sus métricas.
+
+## Conclusiones
+
+En ese desarrollo se implememntaron modelos lineales clásicos y de efectos
+mixtos. El modelo mixto tuvo el mejor desempeño en ajuste pero la capacidad
+predictiva de ambos es deficiente.
+
+Se le atribuye esto (parcialmente) a la volatilidad del sector hidrocarburos,
+influenciado no solo por el comportamiento de la economía sino también por el
+comportamiento político a nivel grobal. Lo que hace que el desempeño de los
+costos de ventas de este sector en Colombia no sea enteramente dependiente de
+los efectos macroeconomicos del estado.
+
+Otra razón a la que puede deberse esta situación es a la disposición de los
+datos utilizados, los cuales como se mencionó antes poseen valores repetidos
+para diferentes registros haciendo necesario el uso de modelos mixtos que a
+pesar de todo, no fueron capaces de captar a nivel predictivo su comportamiento.
+
+Una aproximación que podría mejorar los resultados incluye la selección de
+conjuntos de entrenamiento y prueba mediante métodos que aseguren que sean
+representativos y significativos, la selección de más variables, tanto 
+como internacionales, que se considere pueden afectar este sistema.
+
+## Estimación del esfuerzo
+
+Se expone a continuación la estimación horaria por parte de los dos autores de
+este trabajo (la suma de las horas trabajadas por los dos) para las diferentes
+etapas que lo componen.
+
+Consolidación de la información : 18 horas
+
+Transformación de variables y análisis descriptivo: 16 horas
+
+Ajuste y validación de modelos: 13 horas
+
+Redacción del reporte: 23 horas
+
+## Referencias
+Superintendencia de Sociedades. (12 de Abril de 2020). Portal de Información
+Empresarial. Obtenido de http://pie.supersociedades.gov.co/
+
+Banco de la Republica (12 de Abril de 2020). Información Macroeconomica.
+Obtenido del Banco de la República: https://www.banrep.gov.co/es/-estadisticas
+
+DANE. (12 de Abril de 2020). DANE Índice de Precios al Consumidor. Obtenido
+del DANE: https://www.dane.gov.co/index.php/estadisticas-por-tema/precios-y-costos/indice-de-precios-al-consumidor-ipc/ipc-informacion-tecnica#variaciones
+
+Ospina, J. D. (Octunbre de 2020). Clase Métodos Estadísticos Avanzados en
+Ciencia de los Datos. Maestría en Matemáticas aplicadas, EAFIT.
+Medellín, Colombia.
+
+Arribas-Gil, Ana and Romo, Juan (2014). Shape outlier detection and
+visualization for functional data: The outliergram.
+
+Macchiavelli R, Torres-Saavedra P. (2018). Modelos Estadísticos Avanzados
+Aplicados a la Investigación en Salud y Ambiente. Facultad de Ciencias Exactas
+y Naturales, Universidad Nacional de Buenos Aires.
