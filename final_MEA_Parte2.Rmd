@@ -79,11 +79,12 @@ data_test = data[data$NIT%in%nits_test,]
 
 ## Modelos lineales
 
-Teniendo en cuenta que se cuenta con las salidas CV y CVdif, se ponen a
-consideración cuatro modelos considerando combinaciones entre las salidas y las
-variables en vairación porcentual anual (dif). Al considerar cuán interpretables
-pueden ser los resultados se opta por el modelo que considera los costos de
-venta en variación porcentual anual y las variables explicativas de igual modo.
+Considerando las trasnformaciones que se realizaron sobre los datos y sobre la
+variable salida (CV) se deciden evaluar cuatro posibles modelos iniciales que combinan las variables de entrada y de salida con sus versiones en diferencias. Los primeros dos modelos utilizan la salida CV y las variables explicativas originales (el primero modelo) y en diferencias, aquellas a las que se les sacaron diferencias (el segundo modelo). Para las modelos 3 y 4 la variable a explicar es CVdif y y las variables explicativas se comportan como se acaba de mencionar en el caso de los modelos 1 y 2.
+
+A la hora de determinar cuál modelo seleccionar se realizaron las regresiones lineales de cada uno y se evaluó el ajuste de cada uno, además de considerar cuán interpretables llegaban a ser los resultados. A partir de esto se opta por el modelo que considera los costos de venta en variación porcentual anual (CVdif) y las variables explicativas de igual modo.
+
+Cabe aclarar que no necesariamente es el mejor modelo posible pero ante las variables de las que se disponen, las trasnformaciones realizadas y consideraciones tomadas es el mejor de las cuatro opciones presentadas. ESte modelo más adelante se ve sujeto a qué variables utilizará y se evaluará si es pertinente el uso de modelos lineales generalizados o de efectos mixtos para mejorar su desempeño.
 ```{r}
 # lm1 = lm('CV~PIB+IPC+TD+BF+BCC+TI+TRM', data = data_train)
 # lm2 = lm('CV~PIB+IPC+TD+BFdif+BCCdif+TI+TRMdif', data = data_train)

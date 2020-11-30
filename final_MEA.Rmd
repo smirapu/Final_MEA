@@ -1,0 +1,59 @@
+---
+title: "Actividad de evaluación de la asignatura Métodos Estadísticos Avanzados"
+author: "Mateo Rios Querubin, Sara Mira Puerta"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Resumen
+
+En este documento se presenta la actividad evaluativa propuesta en la asignatura
+de Métodos Estadísticos Avanzados, junto con los vinculos de los archivos que
+exponen las solucioenes dadas a esta y el git que los almacena: https://github.com/smirapu/Final_MEA.git.
+
+## Actividad Evaluativa
+
+### Objetivo
+
+Caracterizar las relaciones entre algunos indicadores macroeconómicos y los costos y gastos de ventas de las empresas colombianas vigiladas por la SuperSociedades.
+
+### Lineamientos
+
+1. Con ayuda de un modelo lineal modele cree un modelo o varios modelos que permitan caracterizar la relación entre las variables PIB, Inflación, Desempleo, Tasa de Cambio, Balance Fiscal, Balance en Cuenta Corriente, Tasa de intervención, TRM y los costos y gastos de ventas.
+2. Se debe escoger mínimo un tipo de empresas (Clasificación Industrial Internacional Uniforme) que tenga más de 20 empresas y tomar al menos los últimos tres años de información disponible
+3. Se debe evaluar el ajuste y la capacidad predictiva
+4. Se deben explicar todas las transformaciones de variables requeridas por el
+modelo
+5. Se deben explicar todos los pasos para la construcción de la base de datos:
+descarga de información, concatenación, etc.
+6. Se debe incluir un análisis descriptivo
+7. Se debe incluir un análsis de la razonabilidad de las cifraas
+8. Se debe redactar un reporte técnico documentando lo anterior. La sugerencia es
+utilizar un formato que permita la inclusión de gráficos basados en html o JavaScript (por ejemplo hmtl a partir de Rmarkdown). El código se debe subir a un repositorio Git y referenciarlo en el reporte. El reporte debe incluir una estimación del esfuerzo de las actividades de 1) consolidación de información, 3) transformación de varibles y análisis descriptivo, 4) ajuste y validación de modelos y 5) redacción del reporte
+9. El trabajo se debe subir al canal del curso en Teams y se debe notificar por correo a la dirección judaospi@bancolombia.com.co
+10. La fecha de entrega es el viernes 30 de octubre y el trabajo se puede presentar en equipos de máximo cinco estudiantes
+
+Para acceder a los datos de costos y gastos de ventas:
+
+• Entrar a http://pie.supersociedades.gov.co > MENÚ > Descarga Masiva de
+Información Descargar la información de los años 2016 a 2019
+
+## Soluciones
+
+Para desarrollar los lineamientos especificados anteriormente la solución se
+divide en dos parte:
+
+1. final_MEA_Parte1: Este archivo contiene la información relativa a una
+definición más precisa del problema, la selección de la información, cómo es
+obtenida y cuáles fueron los procesos realizados para procesarla. Además contiene
+la exploración y análisis de los datos en cuestión.
+Se presenta el archivo con extensión ipynb https://github.com/smirapu/Final_MEA/blob/main/final_MEA_Parte1.ipynb
+
+2. final_MEA_Parte2: En este archivo se encuentran los diferentes
+modelos propuestos así cómo los análisis realizados para determinar cuál es el
+mejor de ellos. Finalmente, a partir de los diferentes resultados presentados
+se exponen las conclusiones a las que se llegaron.
+Se presenta el archivo con extenciones RMD y html. Archivo RMD: https://github.com/smirapu/Final_MEA/blob/main/final_MEA_Parte2.Rmd, archivo html: https://github.com/smirapu/Final_MEA/blob/main/final_MEA_Parte2.html)
