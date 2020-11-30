@@ -50,7 +50,7 @@ divide en dos parte:
 definición más precisa del problema, la selección de la información, cómo es
 obtenida y cuáles fueron los procesos realizados para procesarla. Además contiene
 la exploración y análisis de los datos en cuestión.
-Se presenta el archivo con extensión ipynb https://github.com/smirapu/Final_MEA/blob/main/final_MEA_Parte1.ipynb
+Se presenta el archivo con extensión ipynb https://github.com/smirapu/Final_MEA/blob/main/final_MEA_Parte1.html
 
 2. final_MEA_Parte2: En este archivo se encuentran los diferentes
 modelos propuestos así cómo los análisis realizados para determinar cuál es el
